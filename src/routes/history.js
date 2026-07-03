@@ -1,28 +1,33 @@
 const express = require('express');
 const router = express.Router();
-const db = require('../database');
+const pool = require('../database');
 
-// GET /history — todo el historial de cambios de todos los préstamos
-router.get('/', (req, res) => {
-  const rows = db.prepare(`
-    SELECT h.*, l.borrower AS current_borrower
-    FROM history h
-    LEFT JOIN loans l ON l.id = h.loan_id
-    ORDER BY h.changed_at DESC
-  `).all();
-
-  res.json(rows);
+// GET /history
+router.get('/', async (req, res) => {
+  try {
+    const { rows } = await pool.query(`
+      SELECT h.*, l.borrower AS current_borrower
+      FROM history h
+      LEFT JOIN loans l ON l.id = h.loan_id
+      ORDER BY h.changed_at DESC
+    `);
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-// GET /history/:loanId — historial de un préstamo específico
-router.get('/:loanId', (req, res) => {
-  const rows = db.prepare(`
-    SELECT * FROM history
-    WHERE loan_id = ?
-    ORDER BY changed_at DESC
-  `).all(req.params.loanId);
-
-  res.json(rows);
+// GET /history/:loanId
+router.get('/:loanId', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM history WHERE loan_id = $1 ORDER BY changed_at DESC',
+      [req.params.loanId]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;

@@ -1,26 +1,32 @@
-const Database = require('better-sqlite3');
-const path = require('path');
+const { Pool } = require('pg');
 
-const db = new Database(path.join(__dirname, '../loans.db'));
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS loans (
-    id         INTEGER PRIMARY KEY AUTOINCREMENT,
-    borrower   TEXT    NOT NULL,
-    amount     REAL    NOT NULL,
-    loan_date  TEXT    NOT NULL,
-    created_at TEXT    NOT NULL DEFAULT (datetime('now'))
-  );
+const initDB = async () => {
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS loans (
+      id         SERIAL PRIMARY KEY,
+      borrower   TEXT    NOT NULL,
+      amount     NUMERIC NOT NULL,
+      loan_date  TEXT    NOT NULL,
+      created_at TEXT    NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS'))
+    );
 
-  CREATE TABLE IF NOT EXISTS history (
-    id               INTEGER PRIMARY KEY AUTOINCREMENT,
-    loan_id          INTEGER NOT NULL,
-    borrower_before  TEXT    NOT NULL,
-    amount_before    REAL    NOT NULL,
-    loan_date_before TEXT    NOT NULL,
-    changed_at       TEXT    NOT NULL DEFAULT (datetime('now')),
-    change_note      TEXT
-  );
-`);
+    CREATE TABLE IF NOT EXISTS history (
+      id               SERIAL PRIMARY KEY,
+      loan_id          INTEGER NOT NULL,
+      borrower_before  TEXT    NOT NULL,
+      amount_before    NUMERIC NOT NULL,
+      loan_date_before TEXT    NOT NULL,
+      changed_at       TEXT    NOT NULL DEFAULT (to_char(now(), 'YYYY-MM-DD HH24:MI:SS')),
+      change_note      TEXT
+    );
+  `);
+};
 
-module.exports = db;
+initDB().catch(console.error);
+
+module.exports = pool;
