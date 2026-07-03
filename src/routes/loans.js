@@ -5,7 +5,7 @@ const db = require('../database');
 // GET /loans — todos los préstamos + total general
 router.get('/', (req, res) => {
   const loans = db.prepare(
-    'SELECT * FROM loans ORDER BY created_at DESC'
+    'SELECT * FROM loans ORDER BY loan_date DESC, created_at DESC'
   ).all();
 
   const totalRow = db.prepare(
